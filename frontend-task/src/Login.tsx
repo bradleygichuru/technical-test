@@ -20,6 +20,7 @@ export default function Login() {
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const onSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
 		try {
+			//login user
 			e.preventDefault();
 			setIsSubmitting(true);
 			console.log({ password, email });
@@ -33,7 +34,7 @@ export default function Login() {
 			if (data.status == "success") {
 				setIsSubmitting(false);
 				toast({ description: "Logged in", status: "success" });
-
+				//save JWT token to browser local storage for use in headers for authentication
 				localStorage.removeItem("token");
 				localStorage.removeItem("isAdmin")
 				localStorage.setItem("token", data.token);
@@ -54,7 +55,7 @@ export default function Login() {
 			toast({ description: "Error logging in", status: "error" });
 		}
 	}
-	const handleClick = () => setShow(!show);
+	const handleClick = () => setShow(!show);//toogle password visibility
 	return (
 		<form onSubmit={onSubmit}>
 			<FormControl mt={4}>

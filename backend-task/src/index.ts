@@ -1,7 +1,7 @@
 import express, { Express, Request, RequestHandler, Response } from "express";
 import dotenv from "dotenv";
 const cors = require("cors");
-import { client, pool } from "./utils/pool-inst";
+import { pool } from "./utils/pool-inst";
 import bodyParser from "body-parser";
 import { hashSync, genSaltSync, compareSync } from "bcrypt";
 const jwt = require("jsonwebtoken");
@@ -15,6 +15,7 @@ const router = Router();
 app.use(cors());
 app.use(bodyParser.json());
 const authenticateToken: RequestHandler = (req, res, next) => {
+  //middleware verify submitted jwt token
   const authHeader = req.headers["authorization"];
   const token = authHeader;
   console.log({ token, authHeader });
@@ -36,6 +37,7 @@ const authenticateToken: RequestHandler = (req, res, next) => {
   );
 };
 router.get("/users", async (req: Request, res: Response) => {
+  //get all users
   console.log("GET /users");
   const client = await pool.connect();
   try {
@@ -48,8 +50,8 @@ router.get("/users", async (req: Request, res: Response) => {
     client.release();
   }
 });
-router.post("/auth/register", async (req: Request, res: Response) => {});
 router.get("/users/:id", async (req: Request, res: Response) => {
+  //get use by id
   const client = await pool.connect();
   try {
     console.log(`GET /users/${req.params.id}`);

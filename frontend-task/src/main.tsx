@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import Login from './Login.tsx'
 const queryClient = new QueryClient()
+//registering routes
 const router = createBrowserRouter([
 	{
 		path: "/",

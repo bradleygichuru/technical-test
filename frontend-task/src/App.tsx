@@ -55,6 +55,7 @@ function App() {
 		onClose: onCloseNewUser,
 	} = useDisclosure();
 	const usersQuery = useQuery({
+		//Fetch users
 		queryKey: ["users"],
 		queryFn: async () => {
 			const res = await fetch("http://localhost:3000/users");
@@ -123,6 +124,7 @@ function App() {
 							colorScheme="green"
 							onClick={async () => {
 								try {
+									//Edit user
 									if (localStorage.getItem("isAdmin") == "true") {
 										const res = await fetch(
 											`http://localhost:3000/users/${currId}`,
@@ -250,6 +252,7 @@ function App() {
 							colorScheme="green"
 							onClick={async () => {
 								try {
+									//Create new user
 									if (localStorage.getItem("isAdmin") == "true") {
 										const res = await fetch(`http://localhost:3000/users`, {
 											method: "POST",
@@ -328,75 +331,77 @@ function App() {
 						</tr>
 					</thead>
 					<tbody>
-						{paginate(usersQuery.data
-							?.filter((user) => user.name.includes(searchQuery ?? "")) ?? new Array<User>(), 5, page)
-							.map((user: User, index: number) => {
-								return (
-									<>
-										<tr
-											key={index}
-											onClick={() => {
-												setCurrId(user.id);
-												setCurrName(user.name);
-												setCurrPhoneNumber(user.phone_number);
-												setCurrEmail(user.email);
-												onOpen();
-											}}
-										>
-											<th>{index + 1}</th>
-											<td>{user.name}</td>
-											<td>{user.email}</td>
-											<td>{user.company}</td>
-										</tr>
+						{	//paginate user array by page size of 5 after filtering by name
+							paginate(usersQuery.data
+								?.filter((user) => user.name.includes(searchQuery ?? "")) ?? new Array<User>(), 5, page)
+								.map((user: User, index: number) => {
+									return (
+										<>
+											<tr
+												key={index}
+												onClick={() => {
+													setCurrId(user.id);
+													setCurrName(user.name);
+													setCurrPhoneNumber(user.phone_number);
+													setCurrEmail(user.email);
+													onOpen();
+												}}
+											>
+												<th>{index + 1}</th>
+												<td>{user.name}</td>
+												<td>{user.email}</td>
+												<td>{user.company}</td>
+											</tr>
 
-										<Button
-											size="xs"
-											colorScheme="blue"
-											aria-label="Search database"
-											onClick={async () => {
-												try {
-													if (localStorage.getItem("isAdmin") == "true") {
-														const res = await fetch(
-															`http://localhost:3000/user/${user.id}`,
-															{ method: "DELETE" },
-														);
-														const data = await res.json();
-														if (data.status == "success") {
-															toast({
-																description: "Deleted",
-																status: "success",
-															});
-															queryClient.invalidateQueries({
-																queryKey: ["users"],
-															});
+											<Button
+												size="xs"
+												colorScheme="blue"
+												aria-label="Search database"
+												onClick={async () => {
+													try {
+														//DELETE user
+														if (localStorage.getItem("isAdmin") == "true") {
+															const res = await fetch(
+																`http://localhost:3000/user/${user.id}`,
+																{ method: "DELETE" },
+															);
+															const data = await res.json();
+															if (data.status == "success") {
+																toast({
+																	description: "Deleted",
+																	status: "success",
+																});
+																queryClient.invalidateQueries({
+																	queryKey: ["users"],
+																});
+															} else {
+																toast({
+																	description: "Error Deleting",
+																	status: "error",
+																});
+															}
 														} else {
 															toast({
-																description: "Error Deleting",
+																description: "Not an administrator",
 																status: "error",
 															});
 														}
-													} else {
+													} catch (e) {
+														console.error(e);
+
 														toast({
-															description: "Not an administrator",
+															description: "Error Deleting",
 															status: "error",
 														});
 													}
-												} catch (e) {
-													console.error(e);
-
-													toast({
-														description: "Error Deleting",
-														status: "error",
-													});
-												}
-											}}
-										>
-											{" "}
-											delete
-										</Button>
-									</>
-								);
-							})}
+												}}
+											>
+												{" "}
+												delete
+											</Button>
+										</>
+									);
+								})}
 					</tbody>
 				</table>
 				<div className="join">
