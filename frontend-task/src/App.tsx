@@ -109,7 +109,7 @@ function App() {
 										`http://localhost:3000/users/${currId}`,
 										{
 											method: "PUT",
-											headers: { 'Content-Type': 'application/json' },
+											headers: { 'Content-Type': 'application/json', 'Authorization': `${localStorage.getItem('token')}` },
 											body: JSON.stringify({
 												email: currEmail,
 												phoneNumber: currPhoneNumber,
@@ -123,7 +123,7 @@ function App() {
 										queryClient.invalidateQueries({ queryKey: ["users"] });
 										onClose()
 									} else {
-										toast({ description: "Error updating", status: "error" });
+										toast({ description: data.status, status: "error" });
 									}
 								} catch (e) {
 									toast({ description: "Error updating", status: "error" });

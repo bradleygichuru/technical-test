@@ -27,7 +27,7 @@ const authenticateToken: RequestHandler = (req, res, next) => {
   const token = authHeader && authHeader.split(" ")[1];
 
   if (token == null) {
-    return res.sendStatus(401);
+    return res.status(401).json({ status: "unauthenticated" });
   }
 
   jwt.verify(
@@ -37,7 +37,7 @@ const authenticateToken: RequestHandler = (req, res, next) => {
       console.log(err);
 
       if (err) {
-        return res.sendStatus(403);
+        return res.status(403).json({ status: "unauthorized" });
       }
       next();
     },
@@ -48,7 +48,6 @@ router.get("/users", async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
     const result = await client.query("SELECT * FROM users");
-    console.log(result);
     return res.json({ users: result?.rows, status: "success" });
   } catch (e) {
     console.error(e);
@@ -58,9 +57,10 @@ router.get("/users", async (req: Request, res: Response) => {
   }
 });
 router.post("/auth/register", async (req: Request, res: Response) => {});
-router.get("/user/:id", async (req: Request, res: Response) => {
+router.get("/users/:id", async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
+    console.log(`GET /users/${req.params.id}`);
     const result = await client.query("SELECT * FROM users WHERE id=$1", [
       req.params.id,
     ]);
@@ -126,10 +126,12 @@ router.post("/users", async (req: Request, res: Response) => {
 router.post("/auth/login", async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
+    console.log(`POST /auth/login`);
     const result: QueryResult<User> = await client.query(
       "SELECT * FROM users WHERE email=$1",
       [req.body.email],
     );
+    console.log(req.body);
     if (result.rows.length > 0) {
       const hashCompareResult = compareSync(
         req.body.password,
@@ -155,7 +157,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
 });
 router.put(
   "/users/:id",
-
+  authenticateToken,
   async (req: Request, res: Response) => {
     const client = await pool.connect();
     try {
@@ -188,8 +190,9 @@ app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
 
-function generateAccessToken(username: string) {
-  return jwt.sign(username, process.env.TOKEN_SECRET as string, {
-    expiresIn: "1800s",
-  });
+function generateAccessToken(password: string) {
+  return jwt.sign(
+    { data: password, exp: Math.floor(Date.now() / 1000) + 60 * 60 },
+    process.env.TOKEN_SECRET as string,
+  );
 }
