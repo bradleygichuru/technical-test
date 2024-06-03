@@ -17,5 +17,7 @@ Start Backend dev server
 cd backend-task
 npm run dev
 ```
-# Admin
+# Login
 Database seeded with an admin user with credentials email : johndoe@gmail.com password : admin
+
+login page is located at /login route 
