@@ -7,6 +7,10 @@ cd ..
 cd frontend-task
 npm i
 ```
+## tests
+```console
+npm run test
+```
 ## Start Frontend dev server
 ```console
 cd frontend-task
