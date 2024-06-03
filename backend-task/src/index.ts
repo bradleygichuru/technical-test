@@ -1,5 +1,6 @@
 import express, { Express, Request, RequestHandler, Response } from "express";
 import dotenv from "dotenv";
+const cors = require("cors");
 import { client, pool } from "./utils/pool-inst";
 import bodyParser from "body-parser";
 import { hashSync, genSaltSync, compareSync } from "bcrypt";
@@ -11,6 +12,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 const router = Router();
+app.use(cors());
 app.use(bodyParser.json());
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -71,13 +73,21 @@ router.get("/user/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/user/:id", async (req: Request, res: Response) => {
+router.delete("/users/:id", async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
-    const result = await client.query("DELETE FROM users WHERE id=$1", [
-      req.params.id,
-    ]);
-    return res.json({ users: result?.rows, status: "success" });
+    console.log(`DELETE /users/${req.params.id}`);
+    const result = await client.query(
+      "DELETE FROM users WHERE id=$1 RETURNING *",
+      [req.params.id],
+    );
+    if (result.rows[0].id == parseInt(req.params.id as string)) {
+      return res.json({ status: "success" });
+    } else {
+      return res
+        .status(500)
+        .json({ status: "An error occurred deleting the user" });
+    }
   } catch (e) {
     console.error(e);
     return res.status(500).send("An internal error occured");
@@ -145,13 +155,15 @@ router.post("/auth/login", async (req: Request, res: Response) => {
 });
 router.put(
   "/users/:id",
-  authenticateToken,
+
   async (req: Request, res: Response) => {
     const client = await pool.connect();
     try {
+      console.log(req.body);
+      console.log(`PUT /users/${req.params.id}`);
       const result = await client.query(
-        "UPDATE users SET name = $1,email=$2,phone_number=$3",
-        [req.body.name, req.body.email, req.body.phoneNumber],
+        "UPDATE users SET name = $1,email=$2,phone_number=$3 WHERE id=$4",
+        [req.body.name, req.body.email, req.body.phoneNumber, req.params.id],
       );
       if (result.rowCount! > 0) {
         return res.status(200).json({

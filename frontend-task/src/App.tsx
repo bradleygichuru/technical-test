@@ -1,5 +1,5 @@
 import "./App.css";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Modal,
 	ModalOverlay,
@@ -13,6 +13,7 @@ import {
 	Input,
 	Button,
 	useDisclosure,
+	useToast,
 } from "@chakra-ui/react";
 import { useState } from "react";
 interface User {
@@ -25,6 +26,7 @@ interface User {
 	is_admin: boolean;
 }
 function App() {
+	const queryClient = useQueryClient();
 	const [currName, setCurrName] = useState<string | undefined>(undefined);
 	const [currId, setCurrId] = useState<number | undefined>(undefined);
 	const [currEmail, setCurrEmail] = useState<string | undefined>(undefined);
@@ -32,6 +34,7 @@ function App() {
 	const [currPhoneNumber, setCurrPhoneNumber] = useState<string | undefined>(
 		undefined,
 	);
+	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const usersQuery = useQuery({
 		queryKey: ["users"],
@@ -41,7 +44,8 @@ function App() {
 			return data.users as Array<User>;
 		},
 	});
-	console.log(searchQuery)
+	console.log({ currName, currId, currPhoneNumber, currEmail })
+	console.log(searchQuery);
 	return (
 		<>
 			<Modal isOpen={isOpen} onClose={onClose}>
@@ -90,7 +94,6 @@ function App() {
 							mr={3}
 							onClick={() => {
 								onClose();
-								setCurrId(undefined);
 								setCurrEmail(undefined);
 								setCurrPhoneNumber(undefined);
 								setCurrName(undefined);
@@ -98,7 +101,37 @@ function App() {
 						>
 							Close
 						</Button>
-						<Button colorScheme="green">Confirm</Button>
+						<Button
+							colorScheme="green"
+							onClick={async () => {
+								try {
+									const res = await fetch(
+										`http://localhost:3000/users/${currId}`,
+										{
+											method: "PUT",
+											headers: { 'Content-Type': 'application/json' },
+											body: JSON.stringify({
+												email: currEmail,
+												phoneNumber: currPhoneNumber,
+												name: currName,
+											}),
+										},
+									);
+									const data = await res.json();
+									if (data.status == "Updated successfully") {
+										toast({ description: "Updated", status: "success" });
+										queryClient.invalidateQueries({ queryKey: ["users"] });
+										onClose()
+									} else {
+										toast({ description: "Error updating", status: "error" });
+									}
+								} catch (e) {
+									toast({ description: "Error updating", status: "error" });
+								}
+							}}
+						>
+							Confirm
+						</Button>
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
@@ -125,25 +158,68 @@ function App() {
 						</tr>
 					</thead>
 					<tbody>
-						{usersQuery.data?.filter((user) => user.name.includes(searchQuery ?? "")).map((user: User, index: number) => {
-							return (
-								<tr
-									key={index}
-									onClick={() => {
-										setCurrName(user.name);
-										setCurrPhoneNumber(user.phone_number);
-										setCurrEmail(user.email);
-										setCurrId(user.id);
-										onOpen();
-									}}
-								>
-									<th>{index + 1}</th>
-									<td>{user.name}</td>
-									<td>{user.email}</td>
-									<td>{user.company}</td>
-								</tr>
-							);
-						})}
+						{usersQuery.data
+							?.filter((user) => user.name.includes(searchQuery ?? ""))
+							.map((user: User, index: number) => {
+								return (
+									<>
+										<tr
+											key={index}
+											onClick={() => {
+												setCurrId(user.id);
+												setCurrName(user.name);
+												setCurrPhoneNumber(user.phone_number);
+												setCurrEmail(user.email);
+												onOpen();
+											}}
+										>
+											<th>{index + 1}</th>
+											<td>{user.name}</td>
+											<td>{user.email}</td>
+											<td>{user.company}</td>
+										</tr>
+
+										<Button
+											size="xs"
+											colorScheme="blue"
+											aria-label="Search database"
+											onClick={async () => {
+												try {
+													const res = await fetch(
+														`http://localhost:3000/user/${user.id}`,
+														{ method: "DELETE" },
+													);
+													const data = await res.json();
+													if (data.status == "success") {
+														toast({
+															description: "Deleted",
+															status: "success",
+														});
+														queryClient.invalidateQueries({
+															queryKey: ["users"],
+														});
+													} else {
+														toast({
+															description: "Error Deleting",
+															status: "error",
+														});
+													}
+												} catch (e) {
+													console.error(e);
+
+													toast({
+														description: "Error Deleting",
+														status: "error",
+													});
+												}
+											}}
+										>
+											{" "}
+											delete
+										</Button>
+									</>
+								);
+							})}
 					</tbody>
 				</table>
 			</div>
