@@ -14,6 +14,7 @@ import {
 	Button,
 	useDisclosure,
 	useToast,
+	Checkbox,
 } from "@chakra-ui/react";
 import { useState } from "react";
 interface User {
@@ -28,14 +29,30 @@ interface User {
 function App() {
 	const queryClient = useQueryClient();
 	const [currName, setCurrName] = useState<string | undefined>(undefined);
+	const [name, setName] = useState<string | undefined>(undefined);
+	const [isAdmin, setIsAdmin] = useState(false);
+	const [company, setCompany] = useState<string | undefined>(undefined);
+	const [email, setEmail] = useState<string | undefined>(undefined);
+	const [password, setPassword] = useState<string | undefined>(undefined);
+	const [phoneNumber, setPhoneNumber] = useState<string | undefined>();
 	const [currId, setCurrId] = useState<number | undefined>(undefined);
 	const [currEmail, setCurrEmail] = useState<string | undefined>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 	const [currPhoneNumber, setCurrPhoneNumber] = useState<string | undefined>(
 		undefined,
 	);
+	const [page, setPage] = useState(1);
 	const toast = useToast();
 	const { isOpen, onOpen, onClose } = useDisclosure();
+	function paginate(array: Array<User>, page_size: number, page_number: number) {
+		// human-readable page numbers usually start with 1, so we reduce 1 in the first argument
+		return array.slice((page_number - 1) * page_size, page_number * page_size);
+	}
+	const {
+		isOpen: isOpenNewUSer,
+		onOpen: onOpenNewUser,
+		onClose: onCloseNewUser,
+	} = useDisclosure();
 	const usersQuery = useQuery({
 		queryKey: ["users"],
 		queryFn: async () => {
@@ -44,14 +61,14 @@ function App() {
 			return data.users as Array<User>;
 		},
 	});
-	console.log({ currName, currId, currPhoneNumber, currEmail })
+	console.log({ currName, currId, currPhoneNumber, currEmail });
 	console.log(searchQuery);
 	return (
 		<>
 			<Modal isOpen={isOpen} onClose={onClose}>
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Modal Title</ModalHeader>
+					<ModalHeader>edit user</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<FormControl>
@@ -105,25 +122,35 @@ function App() {
 							colorScheme="green"
 							onClick={async () => {
 								try {
-									const res = await fetch(
-										`http://localhost:3000/users/${currId}`,
-										{
-											method: "PUT",
-											headers: { 'Content-Type': 'application/json', 'Authorization': `${localStorage.getItem('token')}` },
-											body: JSON.stringify({
-												email: currEmail,
-												phoneNumber: currPhoneNumber,
-												name: currName,
-											}),
-										},
-									);
-									const data = await res.json();
-									if (data.status == "Updated successfully") {
-										toast({ description: "Updated", status: "success" });
-										queryClient.invalidateQueries({ queryKey: ["users"] });
-										onClose()
+									if (localStorage.getItem("isAdmin") == "true") {
+										const res = await fetch(
+											`http://localhost:3000/users/${currId}`,
+											{
+												method: "PUT",
+												headers: {
+													"Content-Type": "application/json",
+													Authorization: `${localStorage.getItem("token")}`,
+												},
+												body: JSON.stringify({
+													email: currEmail,
+													phoneNumber: currPhoneNumber,
+													name: currName,
+												}),
+											},
+										);
+										const data = await res.json();
+										if (data.status == "Updated successfully") {
+											toast({ description: "Updated", status: "success" });
+											queryClient.invalidateQueries({ queryKey: ["users"] });
+											onClose();
+										} else {
+											toast({ description: data.status, status: "error" });
+										}
 									} else {
-										toast({ description: data.status, status: "error" });
+										toast({
+											description: "Not an administrator",
+											status: "error",
+										});
 									}
 								} catch (e) {
 									toast({ description: "Error updating", status: "error" });
@@ -135,16 +162,157 @@ function App() {
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
-			<div className="join">
-				<input
-					value={searchQuery}
-					onChange={(e) => {
-						setSearchQuery(e.target.value);
+			<Modal isOpen={isOpenNewUSer} onClose={onCloseNewUser}>
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>Create new user</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<FormControl>
+							<FormLabel>Email address</FormLabel>
+							<Input
+								onChange={(e) => {
+									setEmail(e.target.value);
+								}}
+								value={email}
+								type="email"
+							/>
+						</FormControl>
+
+						<FormControl>
+							<FormLabel>Name</FormLabel>
+							<Input
+								onChange={(e) => {
+									setName(e.target.value);
+								}}
+								value={name}
+								type="text"
+							/>
+						</FormControl>
+
+						<FormControl>
+							<FormLabel>Phone Number</FormLabel>
+							<Input
+								onChange={(e) => {
+									setPhoneNumber(e.target.value);
+								}}
+								type="text"
+								value={phoneNumber}
+							/>
+						</FormControl>
+						<FormControl>
+							<FormLabel>Password</FormLabel>
+							<Input
+								onChange={(e) => {
+									setPassword(e.target.value);
+								}}
+								type="text"
+								value={password}
+							/>
+						</FormControl>
+						<FormControl>
+							<FormLabel>Company</FormLabel>
+							<Input
+								onChange={(e) => {
+									setCompany(e.target.value);
+								}}
+								type="text"
+								value={company}
+							/>
+						</FormControl>
+						<FormControl>
+							<FormLabel>is Admin</FormLabel>
+							<Checkbox
+								onChange={(e) => {
+									setIsAdmin(e.target.checked);
+								}}
+								type="text"
+								checked={isAdmin}
+							/>
+						</FormControl>
+					</ModalBody>
+
+					<ModalFooter>
+						<Button
+							variant="ghost"
+							mr={3}
+							onClick={() => {
+								onCloseNewUser();
+								setCurrEmail(undefined);
+								setCurrPhoneNumber(undefined);
+								setCurrName(undefined);
+							}}
+						>
+							Close
+						</Button>
+						<Button
+							colorScheme="green"
+							onClick={async () => {
+								try {
+									if (localStorage.getItem("isAdmin") == "true") {
+										const res = await fetch(`http://localhost:3000/users`, {
+											method: "POST",
+											headers: {
+												"Content-Type": "application/json",
+												Authorization: `${localStorage.getItem("token")}`,
+											},
+											body: JSON.stringify({
+												email,
+												phoneNumber,
+												name,
+												company,
+												password,
+												isAdmin,
+											}),
+										});
+										const data = await res.json();
+										if (data.status == "success") {
+											toast({ description: "User created", status: "success" });
+											queryClient.invalidateQueries({ queryKey: ["users"] });
+											onClose();
+										} else {
+											toast({ description: data.status, status: "error" });
+										}
+									} else {
+										toast({
+											description: "Not an administrator",
+											status: "error",
+										});
+									}
+								} catch (e) {
+									toast({
+										description: "Error Creating new user",
+										status: "error",
+									});
+								}
+							}}
+						>
+							Confirm
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+
+			<div className="flex flex-row items-center">
+				<div className="join m-2">
+					<input
+						value={searchQuery}
+						onChange={(e) => {
+							setSearchQuery(e.target.value);
+						}}
+						className="input input-bordered join-item"
+						placeholder="Name"
+					/>
+					<button className="btn join-item rounded-r-full">Search</button>
+				</div>
+				<Button
+					className="m-2"
+					onClick={() => {
+						onOpenNewUser();
 					}}
-					className="input input-bordered join-item"
-					placeholder="Name"
-				/>
-				<button className="btn join-item rounded-r-full">Search</button>
+				>
+					Create new User
+				</Button>
 			</div>
 			<div className="overflow-x-auto">
 				<table className="table">
@@ -158,8 +326,8 @@ function App() {
 						</tr>
 					</thead>
 					<tbody>
-						{usersQuery.data
-							?.filter((user) => user.name.includes(searchQuery ?? ""))
+						{paginate(usersQuery.data
+							?.filter((user) => user.name.includes(searchQuery ?? "")) ?? new Array<User>(), 5, page)
 							.map((user: User, index: number) => {
 								return (
 									<>
@@ -185,22 +353,29 @@ function App() {
 											aria-label="Search database"
 											onClick={async () => {
 												try {
-													const res = await fetch(
-														`http://localhost:3000/user/${user.id}`,
-														{ method: "DELETE" },
-													);
-													const data = await res.json();
-													if (data.status == "success") {
-														toast({
-															description: "Deleted",
-															status: "success",
-														});
-														queryClient.invalidateQueries({
-															queryKey: ["users"],
-														});
+													if (localStorage.getItem("isAdmin") == "true") {
+														const res = await fetch(
+															`http://localhost:3000/user/${user.id}`,
+															{ method: "DELETE" },
+														);
+														const data = await res.json();
+														if (data.status == "success") {
+															toast({
+																description: "Deleted",
+																status: "success",
+															});
+															queryClient.invalidateQueries({
+																queryKey: ["users"],
+															});
+														} else {
+															toast({
+																description: "Error Deleting",
+																status: "error",
+															});
+														}
 													} else {
 														toast({
-															description: "Error Deleting",
+															description: "Not an administrator",
 															status: "error",
 														});
 													}
@@ -222,6 +397,29 @@ function App() {
 							})}
 					</tbody>
 				</table>
+				<div className="join">
+					<button
+						className="join-item btn"
+						onClick={() => {
+							if (page !== 1) {
+								setPage((page) => page - 1);
+							}
+						}}
+					>
+						«
+
+					</button>
+
+					<button className="join-item btn">Page {page}</button>
+					<button
+						className="join-item btn"
+						onClick={() => {
+							setPage((page) => page + 1);
+						}}
+					>
+						»
+					</button>
+				</div>{" "}
 			</div>
 		</>
 	);

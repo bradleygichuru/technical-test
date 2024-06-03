@@ -14,18 +14,10 @@ const port = process.env.PORT || 3000;
 const router = Router();
 app.use(cors());
 app.use(bodyParser.json());
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept",
-  );
-  next();
-});
 const authenticateToken: RequestHandler = (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
+  const token = authHeader;
+  console.log({ token, authHeader });
   if (token == null) {
     return res.status(401).json({ status: "unauthenticated" });
   }
@@ -96,33 +88,38 @@ router.delete("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/users", async (req: Request, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const salt = genSaltSync(10);
-    const hashedPassword = hashSync(req.body.password, salt);
-    const result = await client.query(
-      "INSERT INTO users(name,email,password,phoneNumber,isAdmin) VALUES($1,$2,$3,$4,$5) RETURNINGid",
-      [
-        req.body.name,
-        req.body.email,
-        hashedPassword,
-        req.body.phoneNumber,
-        req.body.is_admin,
-      ],
-    );
-    if (result.rows[0].id) {
-      res.json({ status: "success" });
-    } else {
-      return res.status(500).send("There was an error creating user");
+router.post(
+  "/users",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const salt = genSaltSync(10);
+      const hashedPassword = hashSync(req.body.password, salt);
+      const result = await client.query(
+        "INSERT INTO users(name,email,password,phone_number,is_admin,company) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+        [
+          req.body.name,
+          req.body.email,
+          hashedPassword,
+          req.body.phoneNumber,
+          req.body.is_admin,
+          req.body.company,
+        ],
+      );
+      if (result.rows[0].id) {
+        res.json({ status: "success" });
+      } else {
+        return res.status(500).send("There was an error creating user");
+      }
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("An internal error occured");
+    } finally {
+      client.release();
     }
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send("An internal error occured");
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 router.post("/auth/login", async (req: Request, res: Response) => {
   const client = await pool.connect();
   try {
@@ -141,6 +138,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
         return res.status(200).json({
           token: generateAccessToken(req.body.password),
           status: "success",
+          isAdmin: result.rows[0].is_admin,
         });
       } else {
         return res.status(404).json({ status: "credential miss match" });

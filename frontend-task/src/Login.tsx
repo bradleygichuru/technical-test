@@ -32,8 +32,12 @@ export default function Login() {
 			const data = await res.json();
 			if (data.status == "success") {
 				setIsSubmitting(false);
-				toast({ description: "Updated", status: "success" });
+				toast({ description: "Logged in", status: "success" });
+
+				localStorage.removeItem("token");
+				localStorage.removeItem("isAdmin")
 				localStorage.setItem("token", data.token);
+				localStorage.setItem("isAdmin", data.isAdmin)
 				navigate("/");
 			} else if (data.status == "credential miss match") {
 				setIsSubmitting(false);
@@ -92,7 +96,6 @@ export default function Login() {
 					loadingText={"Signing you in"}
 					variant="solid"
 					color="#FFFFFF"
-					w="100%"
 				>
 					Sign in
 				</Button>
