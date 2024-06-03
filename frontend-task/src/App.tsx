@@ -17,6 +17,7 @@ import {
 	Checkbox,
 } from "@chakra-ui/react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 interface User {
 	id: number;
 	name: string;
@@ -313,6 +314,7 @@ function App() {
 				>
 					Create new User
 				</Button>
+				<Link to="login" className="btn">login</Link>
 			</div>
 			<div className="overflow-x-auto">
 				<table className="table">
