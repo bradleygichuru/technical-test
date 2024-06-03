@@ -19,5 +19,6 @@ npm run dev
 ```
 ## Login
 Database seeded with an admin user with credentials email : johndoe@gmail.com password : admin
+and other 5 users to test pagination
 
 login page is located at /login route 
